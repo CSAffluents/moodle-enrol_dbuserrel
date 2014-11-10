@@ -63,7 +63,9 @@ class enrol_dbuserrel_plugin extends enrol_plugin {
 function setup_enrolments($verbose = false, &$user=null) {
     global $CFG, $DB;
 
-    mtrace('Starting user enrolment synchronisation...');
+    if ($verbose) {
+      mtrace('Starting user enrolment synchronisation...');
+    }
 
     // NOTE: if $this->db_init() succeeds you MUST remember to call
     // $this->enrol_disconnect() as it is doing some nasty vodoo with $CFG->prefix
@@ -210,19 +212,25 @@ function setup_enrolments($verbose = false, &$user=null) {
 				
 				// Get the context of the object
 		$context = context_user::instance($objectusers[$row[$fremoteobject]]);
+            if ($verbose) {
                 mtrace("Information: [" . $row[$fremotesubject] . "] assigning " . $row[$fremoterole] . " to " . $row[$fremotesubject]
-                   . " on " . $row[$fremoteobject]);
+                . " on " . $course->shortname);
+            }
                 // MOODLE 1.X => role_assign($roles[$row->{$fremoterole}]->id, $subjectusers[$row->{$fremotesubject}], 0, $context->id, 0, 0, 0, 'dbuserrel');
 		// MOODLE 2.X => role_assign($roleid, $userid, $contextid, $component = '', $itemid = 0, $timemodified = '') 
 		role_assign($roles[$row[$fremoterole]]->id, $subjectusers[$row[$fremotesubject]], $context->id, 'enrol_dbuserrel', 0, '');
 
             }
 
+        if ($verbose) {
 	    mtrace("Deleting old role assignations");
+        }
             // delete everything left in existing
             foreach ($existing as $key => $assignment) {
                 if ($assignment->component == 'enrol_dbuserrel') {
+            if ($verbose) {
                     mtrace("Information: [$key] unassigning $key");
+            }
                     // MOODLE 1.X => role_unassign($assignment->roleid, $assignment->userid, 0, $assignment->contextid);
 	  	    role_unassign($assignment->roleid, $assignment->userid, $assignment->contextid, 'enrol_dbuserrel', 0);
                 }
@@ -317,6 +325,15 @@ function enrol_disconnect($extdb) {
         }
     }
 
+  /**
+   * Forces synchronisation of user enrolments with external database,
+   * does not create new courses.
+   *
+   * @param stdClass $user user record
+   * @return void
+   */
+  public function sync_user_enrolments($user) {
+    $this->setup_enrolments(false, $user);
+  }
+
 } // end of class
-
-
