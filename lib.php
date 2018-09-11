@@ -23,7 +23,8 @@ class enrol_dbuserrel_plugin extends enrol_plugin {
      * @param object $instance
      * @return bool
      */
-    public function instance_deleteable($instance) {
+    // the function below had been deprecated and replaced with new function name can_delete_instance
+    public function can_delete_instance($instance) {
         if (!enrol_is_enabled('dbuserrel')) {
             return true;
         }
@@ -79,7 +80,8 @@ function setup_enrolments($verbose = false, &$user=null) {
     }
 
     // we may need a lot of memory here
-    @set_time_limit(0);
+    // the time limit statement below replaces the old @set_time_limit(0)
+    core_php_time_limit::raise();
     raise_memory_limit(MEMORY_HUGE);
 
     // Store the field values in some shorter variable names to ease reading of the code.
@@ -335,9 +337,9 @@ function enrol_disconnect($extdb) {
    *
    * @param stdClass $user user record
    * @return void
-   */
+   *
   public function sync_user_enrolments($user) {
     $this->setup_enrolments(false, $user);
   }
-
+  */
 } // end of class
