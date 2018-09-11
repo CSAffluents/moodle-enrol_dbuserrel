@@ -4,15 +4,17 @@ THIS PLUGIN IS IN BETA STATUS! BE CAREFULL WITH PRODUCTION ENVIRONMENT!
 
 Users familiar with enrol/db should have no problems configuring this.
 
-Plugin has been tested on 2.3 and 2.6.
+Plugin has been tested on 2.3 and 2.6. and 3.4
 
 This plugin was first developed by Penny Leach <penny@catalyst.net.nz> for Moodle 1.9
-by I modified it to work with Moodle 2.3
+by I modified it to work with Moodle 2.3. Modified by https://github.com/mfuhrmeisterDM for 2.9 and Madhu Avasarala for 3.4
 
 This is my first experience with Moodle plugin development, so your comments are more than
 welcome. Useless to say that you use this piece of code at your own risk :)
 
 In the configuration, "Subject" represent the parent, and "Object" represent the student.
+(You can easily create a table in your database same or separate from Moodle using phpmyadmin using a CSV file.
+In phpmyadmin, click on import and select file and if it is CSV all options are filled in automatically.)
 
 HOW TO INSTALL
 ==============
