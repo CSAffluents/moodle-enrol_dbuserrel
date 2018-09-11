@@ -6,6 +6,7 @@
  * @subpackage dbuserrel
  * @copyright  Penny Leach <penny@catalyst.net.nz>
  * @copyright  Maxime Pelletier <maxime.pelletier@educsa.org>
+ * @copyright Madhu Avasarala
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * DO NOT USE mysql but use mysqli if using php7.x. The default has been changed and mysql option deleted
  */
