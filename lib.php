@@ -23,7 +23,8 @@ class enrol_dbuserrel_plugin extends enrol_plugin {
      * @param object $instance
      * @return bool
      */
-    public function instance_deleteable($instance) {
+    // the function below had been deprecated and replaced with new function name can_delete_instance
+    public function can_delete_instance($instance) {
         if (!enrol_is_enabled('dbuserrel')) {
             return true;
         }
@@ -63,7 +64,9 @@ class enrol_dbuserrel_plugin extends enrol_plugin {
 function setup_enrolments($verbose = false, &$user=null) {
     global $CFG, $DB;
 
-    mtrace('Starting user enrolment synchronisation...');
+    if ($verbose) {
+      mtrace('Starting user enrolment synchronisation...');
+    }
 
     // NOTE: if $this->db_init() succeeds you MUST remember to call
     // $this->enrol_disconnect() as it is doing some nasty vodoo with $CFG->prefix
@@ -77,14 +80,18 @@ function setup_enrolments($verbose = false, &$user=null) {
     }
 
     // we may need a lot of memory here
-    @set_time_limit(0);
+    // the time limit statement below replaces the old @set_time_limit(0)
+    core_php_time_limit::raise();
     raise_memory_limit(MEMORY_HUGE);
 
     // Store the field values in some shorter variable names to ease reading of the code.
     $flocalsubject  = strtolower($this->get_config('localsubjectuserfield'));
     $flocalobject   = strtolower($this->get_config('localobjectuserfield'));
     $flocalrole     = strtolower($this->get_config('localrolefield'));
-    $fremotesubject = strtolower($this->get_config('remotesubjectuserfield'));
+    $fremotesubject = strtolower($this->get_config('remotesubjectuserfield')); 
+	$fremotesubject_proper = $this->get_config('remotesubjectuserfield'); 
+	//strtolower was messing up column references, so use "proper" casing and replace usages below that refer to columns (generally $row['whatever'])
+	$fremoteobject_proper  = $this->get_config('remoteobjectuserfield');
     $fremoteobject  = strtolower($this->get_config('remoteobjectuserfield'));
     $fremoterole    = strtolower($this->get_config('remoterolefield'));
     $dbtable        = $this->get_config('remoteenroltable');
@@ -185,46 +192,53 @@ function setup_enrolments($verbose = false, &$user=null) {
                 }
 				
 				// Fill the subject array
-                if (!array_key_exists($row[$fremotesubject], $subjectusers)) {
-                    $subjectusers[$row[$fremotesubject]] = $DB->get_field('user', 'id', array($flocalsubject => $row[$fremotesubject]) );
+                if (!array_key_exists($row[$fremotesubject_proper], $subjectusers)) {
+                    $subjectusers[$row[$fremotesubject_proper]] = $DB->get_field('user', 'id', array($flocalsubject => $row[$fremotesubject_proper]) );
                 }
 				
 				// Check if subject exist in Moodle
-                if ($subjectusers[$row[$fremotesubject]] == false) {
-                    error_log("Warning: [" . $row[$fremotesubject] . "] couldn't find subject user -- skipping $key");
+                if ($subjectusers[$row[$fremotesubject_proper]] == false) {
+                    error_log("Warning: [" . $row[$fremotesubject_proper] . "] couldn't find subject user -- skipping $key");
                     // couldn't find user, skip
                     continue;
                 }
 
 				// Fill the object array
-                if (!array_key_exists($row[$fremoteobject], $objectusers)) {
-                    $objectusers[$row[$fremoteobject]] = $DB->get_field('user', 'id', array($flocalobject => $row[$fremoteobject]) );
+                if (!array_key_exists($row[$fremoteobject_proper], $objectusers)) {
+                    $objectusers[$row[$fremoteobject_proper]] = $DB->get_field('user', 'id', array($flocalobject => $row[$fremoteobject_proper]) );
                 }
 				
 				// Check if object exist in Moodle
-                if ($objectusers[$row[$fremoteobject]] == false) {
+                if ($objectusers[$row[$fremoteobject_proper]] == false) {
                     // couldn't find user, skip
-                    error_log("Warning: [" . $row[$fremoteobject] . "] couldn't find object user --  skipping $key");
+                    error_log("Warning: [" . $row[$fremoteobject_proper] . "] couldn't find object user --  skipping $key");
                     continue;
                 }
 				
 				// Get the context of the object
-		$context = context_user::instance($objectusers[$row[$fremoteobject]]);
-                mtrace("Information: [" . $row[$fremotesubject] . "] assigning " . $row[$fremoterole] . " to " . $row[$fremotesubject]
-                   . " on " . $row[$fremoteobject]);
-                // MOODLE 1.X => role_assign($roles[$row->{$fremoterole}]->id, $subjectusers[$row->{$fremotesubject}], 0, $context->id, 0, 0, 0, 'dbuserrel');
-		// MOODLE 2.X => role_assign($roleid, $userid, $contextid, $component = '', $itemid = 0, $timemodified = '') 
-		role_assign($roles[$row[$fremoterole]]->id, $subjectusers[$row[$fremotesubject]], $context->id, 'enrol_dbuserrel', 0, '');
+				$context = context_user::instance($objectusers[$row[$fremoteobject_proper]]);
+				if ($verbose) {
+						mtrace("Information: [" . $row[$fremotesubject_proper] . "] assigning " . $row[$fremoterole] . " to remote user " . $row[$fremotesubject_proper]
+						   . " on " . $row[$fremoteobject_proper]);
+				}
+
+				// MOODLE 1.X => role_assign($roles[$row->{$fremoterole}]->id, $subjectusers[$row->{$fremotesubject}], 0, $context->id, 0, 0, 0, 'dbuserrel');
+				// MOODLE 2.X => role_assign($roleid, $userid, $contextid, $component = '', $itemid = 0, $timemodified = '') 
+				role_assign($roles[$row[$fremoterole]]->id, $subjectusers[$row[$fremotesubject_proper]], $context->id, 'enrol_dbuserrel', 0, '');
 
             }
 
-	    mtrace("Deleting old role assignations");
+		if ($verbose) {
+			mtrace("Deleting old role assignations");
+		}
             // delete everything left in existing
             foreach ($existing as $key => $assignment) {
                 if ($assignment->component == 'enrol_dbuserrel') {
-                    mtrace("Information: [$key] unassigning $key");
+                    if ($verbose) {
+						mtrace("Information: [$key] unassigning $key");
+					}
                     // MOODLE 1.X => role_unassign($assignment->roleid, $assignment->userid, 0, $assignment->contextid);
-	  	    role_unassign($assignment->roleid, $assignment->userid, $assignment->contextid, 'enrol_dbuserrel', 0);
+					role_unassign($assignment->roleid, $assignment->userid, $assignment->contextid, 'enrol_dbuserrel', 0);
                 }
             }
         } else {
@@ -317,6 +331,15 @@ function enrol_disconnect($extdb) {
         }
     }
 
+  /**
+   * Forces synchronisation of user enrolments with external database,
+   * does not create new courses.
+   *
+   * @param stdClass $user user record
+   * @return void
+   *
+  public function sync_user_enrolments($user) {
+    $this->setup_enrolments(false, $user);
+  }
+  */
 } // end of class
-
-
